@@ -116,7 +116,6 @@ class RestServer {
 	public function handle() {
 		$this->url = $this->getPath();
 		$this->method = $this->getMethod();
-		$this->format = $this->getFormat();
 
 		if (($this->useCors) && ($this->method == 'OPTIONS')) {
 			$this->corsHeaders();
@@ -132,7 +131,9 @@ class RestServer {
 			$this->sendData($this->options());
 		}
 
-		list($obj, $method, $params, $this->params, $noAuth) = $this->findUrl();
+		list($obj, $method, $params, $this->params, $noAuth, $contentType) = $this->findUrl();
+		
+		$this->format = $this->getFormat($contentType);
 
 		if ($obj) {
 			if (is_string($obj) && !($newObj = $this->instantiateClass($obj))) {
@@ -361,6 +362,9 @@ class RestServer {
 		foreach ($methods as $method) {
 			$doc = $method->getDocComment();
 			$noAuth = strpos($doc, '@noAuth') !== false;
+			if (preg_match_all('/@contentType[ \t]+\/?(\S*)/s', $doc, $matches, PREG_SET_ORDER)) {
+        			$contentType = $matches[0][1];
+      			}
 			if (preg_match_all('/@url[ \t]+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)[ \t]+\/?(\S*)/s', $doc, $matches, PREG_SET_ORDER)) {
 				$params = $method->getParameters();
 
@@ -381,6 +385,7 @@ class RestServer {
 					$call[] = $args;
 					$call[] = null;
 					$call[] = $noAuth;
+					$call[] = $contentType ?? "";
 
 					$this->map[$httpMethod][$url] = $call;
 				}
@@ -432,7 +437,10 @@ class RestServer {
 		return $method;
 	}
 
-	public function getFormat() {
+	public function getFormat($contentType = "") {
+		if(!empty($contentType)){
+      			return $contentType;
+    		}
 		$format = RestFormat::PLAIN;
 		$accept_mod = null;
 
@@ -463,7 +471,7 @@ class RestServer {
 			$format = RestFormat::JSON;
 		}
 
-		return $format;
+		return $contentType ?? $format;
 	}
 
 	public function getData() {
@@ -489,9 +497,10 @@ class RestServer {
 				foreach ($data->__keepOut() as $prop) {
 					unset($data->$prop);
 				}
+				$this->xml_encode($data);
 			}
 
-			$this->xml_encode($data);
+			echo $data;
 		} else {
 			if (is_object($data) && method_exists($data, '__keepOut')) {
 				$data = clone $data;
