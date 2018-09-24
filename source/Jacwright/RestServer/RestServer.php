@@ -532,7 +532,7 @@ class RestServer {
 		}
 	}
 
-	private function xml_encode($mixed, $domElement = null, $DOMDocument = null) {  //@todo add type hint for $domElement and $DOMDocument
+	protected function xml_encode($mixed, $domElement = null, $DOMDocument = null) {  //@todo add type hint for $domElement and $DOMDocument
 		if (is_null($DOMDocument)) {
 			$DOMDocument = new DOMDocument;
 			$DOMDocument->formatOutput = true;
@@ -569,7 +569,7 @@ class RestServer {
 		}
 	}
 
-	private function corsHeaders() {
+	protected function corsHeaders() {
 		// to support multiple origins we have to treat origins as an array
 		$allowedOrigin = (array)$this->allowedOrigin;
 		// if no origin header is present then requested origin can be anything (i.e *)
